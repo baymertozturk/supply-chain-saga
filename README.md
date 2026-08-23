@@ -1,6 +1,10 @@
-# Dağıtık Sipariş & Envanter Yönetim Sistemi
+# Supply Chain Saga — Dağıtık Sipariş & Envanter Yönetim Sistemi
 
 E-ticaret / tedarik zinciri senaryosunu simüle eden, **4 mikroservisten** oluşan, Kafka ile olay güdümlü (event-driven) haberleşen bir sipariş-envanter yönetim platformu.
+
+Servisler birbirini **çağırmaz** — yalnızca Kafka üzerinden olay alışverişi yapar. Dağıtık
+işlem yönetimi **Saga (choreography)** ile, hata durumunda geri alma ise **telafi işlemiyle
+(compensating transaction)** çözülür.
 
 ## Mimari
 
@@ -74,18 +78,10 @@ diyagramı gelir. "Örnek Sipariş Ver" butonuna basınca olayların 4 servis ar
 Kafka üzerinden nasıl aktığını adım adım izleyebilirsiniz.
 Ayrıntı: [frontend/README.md](frontend/README.md)
 
-> **⚠️ Windows'ta proje yolu ASCII olmalı.** Docker Compose çoklu servis build'inde
-> oturum anahtarını dizin adından türetir; yolda Türkçe karakter varsa build
-> `x-docker-expose-session-sharedkey ... non-printable ASCII characters` hatasıyla
-> başarısız olur. Projeyi ASCII bir yola koyun (ör. `C:\...\supply-chain`) veya bir
-> junction üzerinden çalıştırın:
->
-> ```powershell
-> New-Item -ItemType Junction -Path C:\sc-build -Target "<proje-yolu>"
-> docker compose -f C:\sc-build\docker-compose.yml up --build
-> ```
->
-> Linux/macOS ve GitHub Actions bu kısıttan etkilenmez. Ayrıntı: [TEST_RAPORU.md](TEST_RAPORU.md) §7
+> **Not (Windows):** Projeyi ASCII bir yola klonlayın. Docker Compose çoklu servis
+> build'inde oturum anahtarını dizin adından türetir; yolda ASCII olmayan karakter
+> varsa build başarısız olur. Linux/macOS ve GitHub Actions etkilenmez.
+> Ayrıntı: [docs/TESTING.md](docs/TESTING.md) §7
 
 Durdurmak için:
 
@@ -140,7 +136,7 @@ Manifestler, probe tasarımı ve ayrıntılı adımlar: **[k8s/README.md](k8s/RE
 | notification-service | http://localhost:8084 |
 
 Uçtan uca test sonuçları, tespit edilen hatalar ve bilinen kısıtlar için:
-**[TEST_RAPORU.md](TEST_RAPORU.md)**
+**[docs/TESTING.md](docs/TESTING.md)**
 
 ## Proje Yapısı
 
@@ -154,9 +150,10 @@ Uçtan uca test sonuçları, tespit edilen hatalar ve bilinen kısıtlar için:
 │       └── init-databases.sh
 ├── frontend/                # Web arayüzü (React + Vite, nginx ile sunulur)
 ├── k8s/                     # Kubernetes manifestleri (Deployment/Service/ConfigMap)
+├── docs/                    # Proje dokümantasyonu
+│   └── TESTING.md           # Uçtan uca test raporu
 ├── .github/workflows/ci.yml # CI pipeline (test + Docker build)
 ├── docker-compose.yml       # Tüm sistem (altyapı + 4 mikroservis)
 ├── pom.xml                  # Parent (aggregator) POM
-├── TEST_RAPORU.md           # Uçtan uca test raporu
 └── README.md
 ```

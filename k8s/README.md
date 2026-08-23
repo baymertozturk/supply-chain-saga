@@ -93,6 +93,6 @@ kind delete cluster --name supply-chain
 - **Secret repo'da:** Demo amaçlı. Gerçek ortamda Sealed Secrets / External Secrets
   veya bulut sağlayıcı secret yöneticisi kullanılmalıdır.
 - **Tek replika:** Tüm Deployment'lar `replicas: 1`. Servisler ölçeklenebilir ancak
-  `replicas > 1` yapmadan önce [TEST_RAPORU.md](../TEST_RAPORU.md) §11'deki
+  `replicas > 1` yapmadan önce [docs/TESTING.md](../docs/TESTING.md) §11'deki
   saga yarış durumu (race condition) giderilmelidir.
 - **Kafka/PostgreSQL Deployment olarak tanımlı;** üretimde StatefulSet daha uygundur.
