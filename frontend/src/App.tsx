@@ -64,7 +64,7 @@ export default function App() {
           </p>
         </div>
         <a
-          href="https://github.com/baymertozturk/supply-chain-saga"
+          href="https://github.com/baymertozturk/supply-chain-saga-project"
           target="_blank" rel="noreferrer"
           className="font-mono text-xs text-muted underline decoration-line underline-offset-4 hover:text-ink"
         >

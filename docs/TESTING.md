@@ -2,7 +2,7 @@
 
 **Tarih:** 21 Ağustos 2026
 **Kapsam:** Java 25 geçişi, konteynerleştirme (Dockerfile + Compose), CI pipeline ve uçtan uca sipariş akışı doğrulaması
-**Repo:** https://github.com/baymertozturk/supply-chain-saga
+**Repo:** https://github.com/baymertozturk/supply-chain-saga-project
 
 ---
 
@@ -259,8 +259,8 @@ ayar olmadan çalışır.
 | `test` | JDK 25 kurulumu + `mvn clean test` (30 test) | ✅ success |
 | `build-docker` (×4) | Her servis için multi-stage Docker image build | ✅ success |
 
-**Son çalıştırma:** [run 32428331889](https://github.com/baymertozturk/supply-chain-saga/actions/runs/32428331889) — **5/5 job yeşil**.
-Tüm çalıştırmalar: [Actions sekmesi](https://github.com/baymertozturk/supply-chain-saga/actions)
+**Son çalıştırma:** **5/5 job yeşil** (test + 4 Docker build).
+Tüm çalıştırmalar: [Actions sekmesi](https://github.com/baymertozturk/supply-chain-saga-project/actions)
 
 Pipeline'a ayrıca eklenenler:
 

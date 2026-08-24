@@ -79,8 +79,8 @@ Mutlu yol ve telafi senaryosu:
 **Gereksinimler:** Docker & Docker Compose. (Yerel geliştirme için ek olarak JDK 25 ve Maven 3.8+.)
 
 ```bash
-git clone https://github.com/baymertozturk/supply-chain-saga.git
-cd supply-chain-saga
+git clone https://github.com/baymertozturk/supply-chain-saga-project.git
+cd supply-chain-saga-project
 docker compose up --build
 ```
 
