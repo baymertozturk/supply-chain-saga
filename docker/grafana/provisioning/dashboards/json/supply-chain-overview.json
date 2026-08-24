@@ -1,0 +1,253 @@
+{
+  "uid": "supply-chain-overview",
+  "title": "Supply Chain Saga — Genel Bakış",
+  "tags": ["supply-chain", "mikroservis"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Ayakta olan servis",
+      "description": "Prometheus'un şu an sağlıklı olarak yokladığı mikroservis sayısı (4 olmalı).",
+      "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "max": 4,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 2 },
+              { "color": "green", "value": 4 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+          "expr": "sum(max by (application) (up{application!=\"\"}))",
+          "legendFormat": "ayakta",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Son 1 saatteki HTTP isteği",
+      "description": "Dört servise gelen toplam HTTP isteği (arayüzün health yoklamaları dahil).",
+      "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+          "expr": "sum(max by (application) (increase(http_server_requests_seconds_count[1h])))",
+          "legendFormat": "istek",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Kafka olay işleme hızı (olay/sn)",
+      "description": "Servislerin Kafka'dan tükettiği olay sayısı. Sipariş verdiğinizde buradaki eğri yükselir.",
+      "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+          "expr": "max by (application) (sum by (application, instance) (rate(spring_kafka_listener_seconds_count[1m])))",
+          "legendFormat": "{{application}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "HTTP istek hızı (istek/sn)",
+      "description": "Servis başına saniyedeki HTTP isteği.",
+      "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+          "expr": "max by (application) (sum by (application, instance) (rate(http_server_requests_seconds_count[1m])))",
+          "legendFormat": "{{application}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Ortalama HTTP yanıt süresi",
+      "description": "İstek başına ortalama süre (5 dakikalık pencere).",
+      "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+          "expr": "max by (application) (sum by (application, instance) (rate(http_server_requests_seconds_sum[5m])) / sum by (application, instance) (rate(http_server_requests_seconds_count[5m])))",
+          "legendFormat": "{{application}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "JVM heap kullanımı",
+      "description": "Servis başına kullanılan heap belleği.",
+      "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 13 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+          "expr": "max by (application) (sum by (application, instance) (jvm_memory_used_bytes{area=\"heap\"}))",
+          "legendFormat": "{{application}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "CPU kullanımı",
+      "description": "Servis sürecinin CPU kullanımı (1 = tam bir çekirdek).",
+      "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 13 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+          "expr": "max by (application) (rate(process_cpu_seconds_total[1m]))",
+          "legendFormat": "{{application}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Aktif veritabanı bağlantısı (HikariCP)",
+      "description": "Servis başına o an kullanımda olan PostgreSQL bağlantısı.",
+      "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 13 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "supply-chain-prometheus" },
+          "expr": "max by (application) (hikaricp_connections_active)",
+          "legendFormat": "{{application}}"
+        }
+      ]
+    }
+  ]
+}

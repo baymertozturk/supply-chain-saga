@@ -102,6 +102,8 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
+      # Veri kaynagi + panolar acilista otomatik yuklenir (elle kurulum gerekmez)
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
 
   zipkin:
     image: openzipkin/zipkin:3.4

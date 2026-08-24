@@ -1,0 +1,14 @@
+# json/ klasorundeki panolari Grafana acilisinda otomatik yukler.
+apiVersion: 1
+
+providers:
+  - name: supply-chain
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: false

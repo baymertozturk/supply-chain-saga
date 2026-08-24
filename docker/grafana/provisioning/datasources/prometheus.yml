@@ -1,0 +1,14 @@
+# Grafana acilirken Prometheus'u veri kaynagi olarak otomatik tanimlar.
+# Elle "Add data source" adimina gerek kalmaz.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: supply-chain-prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 5s

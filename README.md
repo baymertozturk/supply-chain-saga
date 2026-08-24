@@ -63,7 +63,7 @@ Mutlu yol ve telafi senaryosu:
 | Kafka (KRaft) | 9094 | Olay akışı |
 | Kafka UI | 8080 | Topic ve mesaj izleme |
 | Prometheus | 9090 | Metrik toplama |
-| Grafana | 3000 | Panolar (`admin` / `admin`) |
+| Grafana | 3000 | Hazır pano: servis sağlığı, olay hızı, gecikme (`admin` / `admin`) |
 | Zipkin | 9411 | Dağıtık izleme (tracing) |
 
 ## Teknoloji yığını
@@ -94,7 +94,7 @@ canlı izleyebilirsiniz.
 |---|---|
 | **Web arayüzü** | <http://localhost:3001> |
 | Kafka UI | <http://localhost:8080> |
-| Grafana | <http://localhost:3000> |
+| Grafana | <http://localhost:3000> (`admin` / `admin`) |
 | Prometheus | <http://localhost:9090> |
 | Zipkin | <http://localhost:9411> |
 
@@ -169,7 +169,7 @@ Manifestler, probe tasarımı ve adım adım anlatım: **[k8s/README.md](k8s/REA
 ├── notification-service/  # Bildirimler
 ├── frontend/              # React + Vite arayüz (nginx ile sunulur)
 ├── k8s/                   # Kubernetes manifestleri
-├── docker/                # Postgres init, Prometheus yapılandırması
+├── docker/                # Postgres init, Prometheus + Grafana yapılandırması
 ├── docs/TESTING.md        # Uçtan uca test raporu
 ├── docker-compose.yml     # Tüm sistem tek dosyada
 └── pom.xml                # Parent (aggregator) POM
