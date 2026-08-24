@@ -1,115 +1,154 @@
-# Supply Chain Saga — Dağıtık Sipariş & Envanter Yönetim Sistemi
+# Supply Chain Saga
 
-E-ticaret / tedarik zinciri senaryosunu simüle eden, **4 mikroservisten** oluşan, Kafka ile olay güdümlü (event-driven) haberleşen bir sipariş-envanter yönetim platformu.
+Dağıtık sipariş ve envanter yönetimi için **olay güdümlü (event-driven) mikroservis** sistemi.
+Dört Spring Boot servisi birbirini doğrudan çağırmaz; yalnızca Kafka üzerinden olay alışverişi
+yapar. Dağıtık işlem tutarlılığı **Saga (choreography)** deseniyle, hata durumunda geri alma ise
+**telafi işlemiyle (compensating transaction)** sağlanır.
 
-Servisler birbirini **çağırmaz** — yalnızca Kafka üzerinden olay alışverişi yapar. Dağıtık
-işlem yönetimi **Saga (choreography)** ile, hata durumunda geri alma ise **telafi işlemiyle
-(compensating transaction)** çözülür.
+Sistemin tamamı tek komutla ayağa kalkar ve **canlı bir web arayüzünden** izlenebilir:
+sipariş verdiğinizde olayların servisler arasında nasıl aktığını adım adım görürsünüz.
 
-## Mimari
-
+```bash
+docker compose up --build     # ardından http://localhost:3001
 ```
-                        ┌─────────────────┐
-                        │   API Gateway    │
-                        └────────┬─────────┘
-                                 │
-        ┌────────────────────────┼─────────────────────────┐
-        │                        │                          │
-┌───────▼────────┐     ┌─────────▼────────┐      ┌──────────▼────────┐
-│  order-service  │     │ inventory-service │      │  payment-service   │
-│    :8081        │     │     :8082         │      │     :8083          │
-└───────┬────────┘     └─────────┬────────┘      └──────────┬────────┘
-        │                        │                          │
-        └───────────────►  Kafka Cluster  ◄─────────────────┘
-                                 │
-                        ┌────────▼─────────┐
-                        │ notification-svc  │
-                        │     :8084         │
-                        └──────────────────┘
+
+---
+
+## Nasıl çalışır
+
+```mermaid
+flowchart LR
+    UI[Web Arayüzü<br/>:3001] -->|POST /orders| ORD
+
+    ORD[order-service<br/>:8081] -->|order-created| INV[inventory-service<br/>:8082]
+    INV -->|stock-reserved| PAY[payment-service<br/>:8083]
+    PAY -->|payment-completed| ORD
+    PAY -.->|payment-failed → stok iadesi| INV
+    INV -.->|stock-rejected| ORD
+    PAY -.->|payment-failed| ORD
+
+    ORD -.-> NOT[notification-service<br/>:8084]
+    PAY --> NOT
+    INV -.-> NOT
 ```
+
+Mutlu yol ve telafi senaryosu:
+
+| # | Olay | Üreten | Tüketen | Sonuç |
+|---|---|---|---|---|
+| 1 | `order-created` | order-service | inventory-service, notification-service | Sipariş `PENDING` |
+| 2 | `stock-reserved` | inventory-service | payment-service, order-service | Stok düşülür |
+| 3 | `payment-completed` | payment-service | order-service, notification-service | Sipariş tamamlanır |
+| — | `stock-rejected` | inventory-service | order-service, notification-service | Stok yetersiz → sipariş iptal |
+| — | `payment-failed` | payment-service | inventory-service, order-service | **Telafi:** rezerve stok iade edilir |
+
+Ödeme başarısız olduğunda `inventory-service` stoğu geri yükler — saga'nın telafi adımı budur.
 
 ## Servisler
 
-| Servis | Port | Veritabanı | Açıklama |
+| Servis | Port | Veritabanı | Sorumluluk |
 |---|---|---|---|
-| order-service | 8081 | orders_db | Sipariş yönetimi |
-| inventory-service | 8082 | inventory_db | Envanter/stok yönetimi |
-| payment-service | 8083 | payments_db | Ödeme işlemleri |
-| notification-service | 8084 | notifications_db | Bildirim servisi |
+| order-service | 8081 | `orders_db` | Sipariş yaşam döngüsü, saga başlatıcı |
+| inventory-service | 8082 | `inventory_db` | Stok rezervasyonu ve iadesi |
+| payment-service | 8083 | `payments_db` | Ödeme işlemleri |
+| notification-service | 8084 | `notifications_db` | Olay bazlı bildirimler |
+| frontend | 3001 | — | Canlı mimari diyagramı (React + nginx) |
 
-## Altyapı Bileşenleri
+## Altyapı
 
-| Bileşen | Port | Açıklama |
+| Bileşen | Port | Kullanım |
 |---|---|---|
-| PostgreSQL | 5432 | İlişkisel veritabanı (her servis için ayrı DB) |
-| Redis | 6379 | Cache & distributed lock |
-| Kafka (KRaft) | 9094 | Event streaming (host erişimi) |
-| Kafka UI | 8080 | Kafka topic/mesaj izleme arayüzü |
+| PostgreSQL | 5432 | Her servis için ayrı şema/veritabanı |
+| Redis | 6379 | Önbellek + dağıtık kilit |
+| Kafka (KRaft) | 9094 | Olay akışı |
+| Kafka UI | 8080 | Topic ve mesaj izleme |
+| Prometheus | 9090 | Metrik toplama |
+| Grafana | 3000 | Panolar (`admin` / `admin`) |
+| Zipkin | 9411 | Dağıtık izleme (tracing) |
 
-## Teknoloji Yığını
+## Teknoloji yığını
 
-- **Java 25** + **Spring Boot 3.3.x**
-- **Spring Data JPA** + **PostgreSQL** + **Flyway**
-- **Spring Kafka** (event-driven messaging)
-- **Spring Data Redis** (cache + distributed lock)
-- **Docker** + **Docker Compose**
-- **Lombok**
+**Backend:** Java 25 · Spring Boot 3.5 · Spring Kafka · Spring Data JPA · Redis · PostgreSQL · Lombok
+**Frontend:** React 19 · TypeScript 5.7 · Vite 6 · Tailwind CSS · nginx (reverse proxy)
+**Altyapı:** Docker Compose · Kubernetes · GitHub Actions · Testcontainers · JaCoCo
 
-## Hızlı Başlangıç
+---
 
-### Ön Koşullar
+## Hızlı başlangıç
 
-- JDK 25+
-- Docker & Docker Compose
-- Maven 3.8+
-
-### 1. Tüm Sistemi Tek Komutla Başlat
+**Gereksinimler:** Docker & Docker Compose. (Yerel geliştirme için ek olarak JDK 25 ve Maven 3.8+.)
 
 ```bash
+git clone https://github.com/baymertozturk/supply-chain-saga.git
+cd supply-chain-saga
 docker compose up --build
 ```
 
-Bu komut 4 mikroservisi ve **web arayüzünü** kendi imajlarından derleyip; PostgreSQL
-(4 ayrı veritabanı), Redis, Kafka (KRaft), Kafka UI, Prometheus, Grafana ve Zipkin ile
-birlikte ayağa kaldırır. Servisler altyapı `healthy` olana kadar bekler.
+Komut; 4 mikroservisi, web arayüzünü, PostgreSQL'i (4 ayrı veritabanı), Redis'i, Kafka'yı ve
+izleme araçlarını ayağa kaldırır. Servisler altyapı `healthy` olana kadar bekler.
 
-Ardından tarayıcıda **http://localhost:3001** adresini açın — sistemin canlı mimari
-diyagramı gelir. "Örnek Sipariş Ver" butonuna basınca olayların 4 servis arasında
-Kafka üzerinden nasıl aktığını adım adım izleyebilirsiniz.
-Ayrıntı: [frontend/README.md](frontend/README.md)
+Sonra tarayıcıda **<http://localhost:3001>** — "Örnek Sipariş Ver" butonuna basıp olay akışını
+canlı izleyebilirsiniz.
 
-> **Not (Windows):** Projeyi ASCII bir yola klonlayın. Docker Compose çoklu servis
-> build'inde oturum anahtarını dizin adından türetir; yolda ASCII olmayan karakter
-> varsa build başarısız olur. Linux/macOS ve GitHub Actions etkilenmez.
-> Ayrıntı: [docs/TESTING.md](docs/TESTING.md) §7
+| Arayüz | Adres |
+|---|---|
+| **Web arayüzü** | <http://localhost:3001> |
+| Kafka UI | <http://localhost:8080> |
+| Grafana | <http://localhost:3000> |
+| Prometheus | <http://localhost:9090> |
+| Zipkin | <http://localhost:9411> |
 
 Durdurmak için:
 
 ```bash
-docker compose down          # konteynerleri durdur
-docker compose down -v       # volume'ları da sil (sıfırdan başlamak için)
+docker compose down       # konteynerleri durdur
+docker compose down -v    # verileri de sil, sıfırdan başla
 ```
 
-### 2. Servisleri Yerelde Çalıştırma (geliştirme)
+> **Windows notu:** Projeyi ASCII karakterli bir yola klonlayın. Docker Compose çoklu servis
+> build'inde oturum anahtarını dizin adından türetir; yolda Türkçe karakter varsa build başarısız
+> olur. Ayrıntı: [docs/TESTING.md](docs/TESTING.md) §7
 
-Alternatif olarak yalnızca altyapıyı konteynerde tutup servisleri IDE'den
-çalıştırabilirsiniz:
+## API'yi doğrudan kullanma
+
+```bash
+# Sipariş oluştur
+curl -X POST http://localhost:8081/orders \
+  -H "Content-Type: application/json" \
+  -d '{"customerId":"CUST-1","productId":"PROD-1","quantity":2}'
+
+# Siparişin durumunu sorgula
+curl http://localhost:8081/orders/{id}
+
+# Stok durumunu gör
+curl http://localhost:8082/products/PROD-1
+```
+
+Sipariş durumu `PENDING` → `STOCK_RESERVED` → `PAYMENT_COMPLETED` şeklinde ilerler; stok veya
+ödeme adımı başarısız olursa `FAILED` olur.
+
+## Geliştirme
+
+Yalnızca altyapıyı konteynerde tutup servisleri IDE'den çalıştırmak için:
 
 ```bash
 docker compose up -d postgres redis kafka kafka-ui
 cd order-service && mvn spring-boot:run
 ```
 
-### 3. Testleri Çalıştır
+Web arayüzünü ayrı çalıştırmak için: [frontend/README.md](frontend/README.md)
+
+## Test
 
 ```bash
 mvn clean test
 ```
 
-30 test (birim + Testcontainers entegrasyon) çalışır, JaCoCo kapsam raporu
-`*/target/site/jacoco/index.html` altında üretilir.
+30 test çalışır (birim + Testcontainers ile entegrasyon). JaCoCo kapsam raporu:
+`*/target/site/jacoco/index.html`. Uçtan uca test sonuçları, bulunan hatalar ve bilinen kısıtlar
+için: **[docs/TESTING.md](docs/TESTING.md)**
 
-### 4. Kubernetes'e Deploy Et (opsiyonel)
+## Kubernetes (opsiyonel)
 
 ```bash
 kind create cluster --name supply-chain
@@ -119,41 +158,19 @@ kind load docker-image --name supply-chain \
 kubectl apply -f k8s/
 ```
 
-Manifestler, probe tasarımı ve ayrıntılı adımlar: **[k8s/README.md](k8s/README.md)**
+Manifestler, probe tasarımı ve adım adım anlatım: **[k8s/README.md](k8s/README.md)**
 
-### Faydalı Linkler
-
-| Arayüz | Adres |
-|---|---|
-| **Arayüz (canlı mimari diyagramı)** | **http://localhost:3001** |
-| Kafka UI | http://localhost:8080 |
-| Grafana | http://localhost:3000 (admin/admin) |
-| Prometheus | http://localhost:9090 |
-| Zipkin (tracing) | http://localhost:9411 |
-| order-service | http://localhost:8081 |
-| inventory-service | http://localhost:8082 |
-| payment-service | http://localhost:8083 |
-| notification-service | http://localhost:8084 |
-
-Uçtan uca test sonuçları, tespit edilen hatalar ve bilinen kısıtlar için:
-**[docs/TESTING.md](docs/TESTING.md)**
-
-## Proje Yapısı
+## Proje yapısı
 
 ```
-├── order-service/           # Sipariş yönetimi servisi
-├── inventory-service/       # Envanter yönetimi servisi
-├── payment-service/         # Ödeme servisi
-├── notification-service/    # Bildirim servisi
-├── docker/                  # Docker yardımcı dosyaları
-│   └── postgres/
-│       └── init-databases.sh
-├── frontend/                # Web arayüzü (React + Vite, nginx ile sunulur)
-├── k8s/                     # Kubernetes manifestleri (Deployment/Service/ConfigMap)
-├── docs/                    # Proje dokümantasyonu
-│   └── TESTING.md           # Uçtan uca test raporu
-├── .github/workflows/ci.yml # CI pipeline (test + Docker build)
-├── docker-compose.yml       # Tüm sistem (altyapı + 4 mikroservis)
-├── pom.xml                  # Parent (aggregator) POM
-└── README.md
+├── order-service/         # Sipariş yönetimi, saga başlatıcı
+├── inventory-service/     # Stok rezervasyonu + telafi
+├── payment-service/       # Ödeme işlemleri
+├── notification-service/  # Bildirimler
+├── frontend/              # React + Vite arayüz (nginx ile sunulur)
+├── k8s/                   # Kubernetes manifestleri
+├── docker/                # Postgres init, Prometheus yapılandırması
+├── docs/TESTING.md        # Uçtan uca test raporu
+├── docker-compose.yml     # Tüm sistem tek dosyada
+└── pom.xml                # Parent (aggregator) POM
 ```
